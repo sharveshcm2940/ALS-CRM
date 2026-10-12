@@ -39,7 +39,7 @@ export function Home() {
           <motion.div
             className="fill"
             initial={
-              reduced ? false : { scale: 1.08, clipPath: "inset(0 0 8% 0)" }
+              reduced ? false : { scale: 1.1, clipPath: "inset(0 0 100% 0)" }
             }
             animate={{ scale: 1, clipPath: "inset(0 0 0% 0)" }}
             transition={{ duration: 1.8, ease: [0.2, 0.65, 0.3, 1] }}
@@ -241,14 +241,21 @@ export function Home() {
         <span className="vertical-caption">SPACES THAT LET LIFE UNFOLD</span>
       </section>
       <section className="featured" id="developments">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false}>
           <motion.div
             className="featured-photo"
             key={p.slug}
-            initial={{ opacity: 0.4 }}
-            animate={{ opacity: 1 }}
+            initial={
+              reduced
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 1.06, clipPath: "inset(0 100% 0 0)" }
+            }
+            animate={{ opacity: 1, scale: 1, clipPath: "inset(0 0% 0 0)" }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{
+              duration: reduced ? 0 : 1.3,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <Picture id={p.image} alt={p.name} />
           </motion.div>

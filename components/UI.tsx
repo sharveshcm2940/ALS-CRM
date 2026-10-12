@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, X } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Keyboard, A11y } from "swiper/modules";
@@ -31,6 +31,7 @@ export function Picture({
 }
 export function Amenities() {
   const [active, setActive] = useState(0);
+  const reduced = useReducedMotion();
   return (
     <section className="section amenities" id="amenities">
       <div className="section-heading" data-reveal>
@@ -51,10 +52,17 @@ export function Amenities() {
           <motion.div
             className="amenity-photo"
             key={active}
-            initial={{ opacity: 0.5, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={
+              reduced
+                ? false
+                : { opacity: 0, scale: 1.05, clipPath: "inset(0 0 0 100%)" }
+            }
+            animate={{ opacity: 1, scale: 1, clipPath: "inset(0 0 0 0%)" }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{
+              duration: reduced ? 0 : 0.8,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <Picture
               id={amenityImages[active].id}
@@ -107,6 +115,7 @@ export function Gallery({
   title?: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const reduced = useReducedMotion();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
   function close() {
@@ -183,9 +192,15 @@ export function Gallery({
         </button>
         {active !== null && (
           <>
-            <div className="lightbox-image">
+            <motion.div
+              key={active}
+              className="lightbox-image"
+              initial={reduced ? false : { opacity: 0, y: 18, scale: 1.025 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            >
               <Picture id={images[active]} alt={`Photograph ${active + 1}`} />
-            </div>
+            </motion.div>
             <div className="lightbox-controls">
               <button
                 aria-label="Previous photograph"

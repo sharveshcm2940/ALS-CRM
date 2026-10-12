@@ -22,7 +22,7 @@ The supplied 32-second video shows a filmed laptop rather than a clean screen re
 - Search filters the structured property dataset by city, residence type and maximum price in INR crore; includes an empty state and reset.
 - Five statically generated property routes with page-specific metadata, specifications, galleries, floor-plan tabs, and neighbourhood map links.
 - Featured-property crossfades, Swiper amenity thumbnails, fullscreen native-dialog gallery with arrows and keyboard navigation, mobile menu and anchor navigation.
-- GSAP viewport reveals/parallax, Lenis scrolling, Motion hero/page transitions and reduced-motion support.
+- Route-scoped GSAP heading masks, photographic image reveals, staggered cards/specifications and parallax; Lenis scrolling; Motion hero/page/gallery transitions and reduced-motion support. Animation triggers refresh after fonts/images load and register newly filtered cards.
 - Enquiry validation is performed in both the browser and the server endpoint. The endpoint returns an explicitly labelled development response. **It neither sends nor stores enquiry data.** Integrate an email provider or CRM and appropriate consent, server-side rate limiting and spam protection before accepting live enquiries.
 
 ## Content and licences
@@ -37,7 +37,8 @@ Photographs: Unsplash License, source URLs in `public/images/CREDITS.txt`. Local
 - `components/Home.tsx`: editorial homepage and filtering
 - `components/PropertyPage.tsx`: property presentation
 - `components/UI.tsx`: imagery, amenity slider, accessible lightbox and enquiry form
-- `components/Shell.tsx`: navigation, footer, scrolling and animations
+- `components/Shell.tsx`: navigation, footer and smooth scrolling
+- `components/MotionSystem.tsx`: route-scoped mask reveals, staggered sequences and parallax
 - `app/api/enquiries/route.ts`: development-mode enquiry validation
 - `app/globals.css`: responsive design system
 

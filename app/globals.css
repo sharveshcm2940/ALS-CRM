@@ -1267,3 +1267,32 @@ h3 {
 .wordmark {
   font-size: 36px;
 }
+
+/* Masked architectural reveals retain their photographic frame. */
+.ritual-photo,
+.spec-photo,
+.highlights-photo {
+  overflow: hidden;
+}
+.ritual-photo > img,
+.highlights-photo > img {
+  height: 110% !important;
+  top: -5% !important;
+}
+.scroll-cue svg {
+  animation: scroll-hint 2.4s ease-in-out infinite;
+}
+@keyframes scroll-hint {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue svg {
+    animation: none;
+  }
+}

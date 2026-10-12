@@ -6,7 +6,8 @@ import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Menu, X, ArrowUpRight } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import { MotionSystem } from "./MotionSystem";
 gsap.registerPlugin(ScrollTrigger);
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -31,41 +32,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
       lenis.destroy();
     };
   }, []);
-  useEffect(() => {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el) =>
-        gsap.fromTo(
-          el,
-          { y: 35, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.9,
-            ease: "power2.out",
-            scrollTrigger: { trigger: el, start: "top 94%", once: true },
-          },
-        ),
-      );
-      gsap.utils.toArray<HTMLElement>("[data-parallax]").forEach((el) =>
-        gsap.fromTo(
-          el,
-          { yPercent: -3 },
-          {
-            yPercent: 3,
-            ease: "none",
-            scrollTrigger: {
-              trigger: el.parentElement,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true,
-            },
-          },
-        ),
-      );
-    });
-    return () => ctx.revert();
-  }, [path]);
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -107,7 +73,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     ["Contact", "/#contact"],
   ];
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <a href="#main" className="skip-link">
         Skip to content
       </a>
@@ -165,6 +131,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </motion.main>
+      <MotionSystem />
       <footer>
         <div className="footer-top">
           <Link href="/" className="wordmark">
@@ -189,6 +156,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <a href="/images/CREDITS.txt">Image credits</a>
         </div>
       </footer>
-    </>
+    </MotionConfig>
   );
 }

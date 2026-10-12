@@ -127,6 +127,34 @@ const { chromium } = require("@playwright/test");
   animated.on("pageerror", (e) => errors.push(e.message));
   await animated.goto("http://localhost:3000", { waitUntil: "networkidle" });
   await animated.waitForTimeout(1800);
+  const card = animated.locator(".property-card").first();
+  if (Number(await card.evaluate((el) => getComputedStyle(el).opacity)) !== 0)
+    throw Error("Offscreen card is missing its reveal animation");
+  const architecturalImage = animated.locator(".ritual-photo");
+  if (
+    !(
+      await architecturalImage.evaluate((el) => getComputedStyle(el).clipPath)
+    ).includes("100%")
+  )
+    throw Error("Architectural image is missing its mask reveal");
+  await card.scrollIntoViewIfNeeded();
+  await animated.waitForTimeout(200);
+  const midway = Number(
+    await card.evaluate((el) => getComputedStyle(el).opacity),
+  );
+  if (midway <= 0 || midway >= 1)
+    throw Error("Property stagger animation did not interpolate");
+  await animated.waitForTimeout(1400);
+  if (Number(await card.evaluate((el) => getComputedStyle(el).opacity)) < 0.99)
+    throw Error("Property card reveal did not finish");
+  await architecturalImage.scrollIntoViewIfNeeded();
+  await animated.waitForTimeout(1800);
+  if (
+    (
+      await architecturalImage.evaluate((el) => getComputedStyle(el).clipPath)
+    ).includes("100%")
+  )
+    throw Error("Image mask did not open");
   await animated.locator("#about").scrollIntoViewIfNeeded();
   await animated.waitForTimeout(1200);
   if (
@@ -138,6 +166,18 @@ const { chromium } = require("@playwright/test");
     ) < 0.95
   )
     throw Error("Scroll reveal did not complete");
+  await animated.goto("http://localhost:3000/properties/windsor-gardens", {
+    waitUntil: "networkidle",
+  });
+  await animated.waitForTimeout(1900);
+  if (
+    Number(
+      await animated
+        .locator(".hero-content h1")
+        .evaluate((el) => getComputedStyle(el).opacity),
+    ) < 0.99
+  )
+    throw Error("Property hero entry did not complete");
   await animated.close();
   const images = await page
     .locator("img")
