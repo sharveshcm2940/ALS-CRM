@@ -47,8 +47,18 @@ app.use(
   }),
 );
 app.get("/api/health", async (req, res) => {
-  await query("SELECT 1");
-  res.json({ data: { status: "ok" } });
+  try {
+    await query("SELECT 1");
+    res.json({ data: { status: "ok", database: "connected" } });
+  } catch (e) {
+    res.status(200).json({
+      data: {
+        status: "degraded",
+        database: "disconnected",
+        hint: "Configure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) in Render Environment Variables.",
+      },
+    });
+  }
 });
 app.use("/api", csrf);
 app.use("/api/auth", authRouter);
@@ -80,15 +90,16 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: "Invalid JSON." });
   if (err.type === "entity.too.large")
     return res.status(413).json({ error: "Request too large." });
-  if (!err.status) {
-    if (err.code === "ECONNREFUSED") {
-      console.error(
-        "Database connection refused: ensure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) are configured in Render Environment Variables.",
-      );
-    } else {
-      console.error("Request failed:", err.code || err.name);
-    }
+  if (err.code === "ECONNREFUSED") {
+    console.error(
+      "Database connection refused: ensure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) are configured in Render Environment Variables.",
+    );
+    return res.status(503).json({
+      error:
+        "Database is currently unreachable. Please ensure your cloud MySQL credentials (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME or DATABASE_URL) are configured in your Render dashboard environment variables.",
+    });
   }
+  if (!err.status) console.error("Request failed:", err.code || err.name);
   res.status(err.status || 500).json({
     error: err.status
       ? err.message
