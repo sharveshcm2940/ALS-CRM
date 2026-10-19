@@ -3,15 +3,25 @@ import { query, config } from "../config/index.js";
 export const cookieOptions = {
   httpOnly: true,
   secure: config.production,
-  sameSite: "strict",
+  sameSite: process.env.COOKIE_SAMESITE || (config.production ? "none" : "lax"),
   path: "/",
 };
 export function fail(status, message) {
   return Object.assign(new Error(message), { status });
 }
+export function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  const configured = (config.origin || "http://localhost:5173")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (configured.includes(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return true;
+  return false;
+}
 export function csrf(req, res, next) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
-  if (req.get("origin") && req.get("origin") !== config.origin)
+  if (req.get("origin") && !isAllowedOrigin(req.get("origin")))
     return next(fail(403, "Origin not allowed"));
   const a = req.cookies.csrf,
     b = req.get("x-csrf-token");

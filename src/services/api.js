@@ -23,11 +23,15 @@ async function readJson(response) {
     );
   }
 }
+const API_BASE =
+  typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/+$/, "")
+    : "/api";
 export async function initializeCsrf() {
   if (readCsrf()) return;
   if (!csrfRequest)
     csrfRequest = (async () => {
-      const response = await fetch("/api/auth/csrf", {
+      const response = await fetch(`${API_BASE}/auth/csrf`, {
         credentials: "include",
       });
       const result = await readJson(response);
@@ -48,7 +52,7 @@ function expired(response, path) {
 }
 export async function api(path, options = {}) {
   await initializeCsrf();
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: "include",
     headers: {
@@ -73,7 +77,9 @@ export async function api(path, options = {}) {
 }
 export async function downloadReport(report) {
   const path = `/reports/${report}?format=csv`;
-  const response = await fetch("/api" + path, { credentials: "include" });
+  const response = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+  });
   expired(response, path);
   if (!response.ok) {
     const result = await readJson(response);

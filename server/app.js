@@ -7,14 +7,29 @@ import { ZodError } from "zod";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { query, config } from "./config/index.js";
-import { csrf, auth, initialized } from "./middleware/auth.js";
+import {
+  csrf,
+  auth,
+  initialized,
+  isAllowedOrigin,
+  fail,
+} from "./middleware/auth.js";
 import { authRouter } from "./routes/auth.js";
 import { recordsRouter } from "./routes/records.js";
 import { operationsRouter } from "./routes/operations.js";
 export const app = express();
+app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(helmet());
-app.use(cors({ origin: config.origin, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) callback(null, true);
+      else callback(fail(403, "Origin not allowed"));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 app.use("/api", (req, res, next) => {
