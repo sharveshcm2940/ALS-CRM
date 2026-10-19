@@ -16,6 +16,13 @@ export function isAllowedOrigin(origin) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (configured.includes(origin)) return true;
+  if (
+    /^https?:\/\/[a-z0-9-]+\.(ngrok-free\.(dev|app)|ngrok\.io|ngrok\.app)(:\d+)?$/i.test(
+      origin,
+    )
+  )
+    return true;
+  if (/^https:\/\/[a-z0-9-]+\.onrender\.com$/i.test(origin)) return true;
   return false;
 }
 export function csrf(req, res, next) {
