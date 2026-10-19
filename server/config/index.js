@@ -7,27 +7,40 @@ export const config = {
   production: process.env.NODE_ENV === "production",
   timezone: process.env.COMPANY_TIMEZONE || "Asia/Kolkata",
 };
-export const pool = mysql.createPool({
-  host: process.env.DB_HOST || "127.0.0.1",
-  port: Number(process.env.DB_PORT || 3307),
-  user: process.env.DB_USER || "als_app",
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || "als_crm",
-  connectionLimit: 10,
-  ...(process.env.DB_SSL === "true"
-    ? {
-        ssl: {
-          rejectUnauthorized: true,
-          ...(process.env.DB_SSL_CA_FILE
-            ? { ca: readFileSync(process.env.DB_SSL_CA_FILE, "utf8") }
-            : {}),
-        },
-      }
-    : {}),
-  timezone: "Z",
-  dateStrings: true,
-  decimalNumbers: true,
-});
+const dbUri = process.env.DATABASE_URL || process.env.MYSQL_URL;
+export const pool = dbUri
+  ? mysql.createPool({
+      uri: dbUri,
+      connectionLimit: 10,
+      ssl:
+        process.env.DB_SSL === "false"
+          ? undefined
+          : { rejectUnauthorized: process.env.DB_SSL_STRICT === "true" },
+      timezone: "Z",
+      dateStrings: true,
+      decimalNumbers: true,
+    })
+  : mysql.createPool({
+      host: process.env.DB_HOST || "127.0.0.1",
+      port: Number(process.env.DB_PORT || 3306),
+      user: process.env.DB_USER || "als_app",
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME || "als_crm",
+      connectionLimit: 10,
+      ...(process.env.DB_SSL === "true"
+        ? {
+            ssl: {
+              rejectUnauthorized: process.env.DB_SSL_STRICT === "true",
+              ...(process.env.DB_SSL_CA_FILE
+                ? { ca: readFileSync(process.env.DB_SSL_CA_FILE, "utf8") }
+                : {}),
+            },
+          }
+        : {}),
+      timezone: "Z",
+      dateStrings: true,
+      decimalNumbers: true,
+    });
 // mysql2's timezone option controls encoding; explicitly pin server sessions too.
 pool.on("connection", (connection) =>
   connection.query("SET time_zone = '+00:00'"),

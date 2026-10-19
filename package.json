@@ -9,6 +9,7 @@
     "start": "node server/index.js",
     "migrate": "node server/migrations/run.js",
     "seed": "node server/seeders/run.js",
+    "db:setup": "node server/migrations/run.js && node server/seeders/run.js",
     "db:up": "node scripts/database.js",
     "account:reset": "node scripts/reset-account.js",
     "test": "node --test --test-concurrency=1 server/tests/*.test.js",

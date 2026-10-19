@@ -80,7 +80,15 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: "Invalid JSON." });
   if (err.type === "entity.too.large")
     return res.status(413).json({ error: "Request too large." });
-  if (!err.status) console.error("Request failed:", err.code || err.name);
+  if (!err.status) {
+    if (err.code === "ECONNREFUSED") {
+      console.error(
+        "Database connection refused: ensure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) are configured in Render Environment Variables.",
+      );
+    } else {
+      console.error("Request failed:", err.code || err.name);
+    }
+  }
   res.status(err.status || 500).json({
     error: err.status
       ? err.message

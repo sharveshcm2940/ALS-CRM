@@ -35,7 +35,10 @@ let count = 0;
 for (const [name, username, role] of names) {
   if ((await query("SELECT id FROM users WHERE username=?", [username])).length)
     continue;
-  const password = randomBytes(18).toString("base64url");
+  const password =
+    process.env.INITIAL_PASSWORD ||
+    process.env.ADMIN_PASSWORD ||
+    randomBytes(18).toString("base64url");
   await query(
     "INSERT INTO users(id,name,username,password_hash,role_id) VALUES (?,?,?,?,?)",
     [randomUUID(), name, username, await bcrypt.hash(password, 12), role],
