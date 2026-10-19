@@ -69,7 +69,7 @@ operationsRouter.get("/dashboard", async (req, res) => {
       metrics[m].active = r.total;
     }
   const recent = {};
-  for (const m of ["projects", "tasks", "announcements"])
+  for (const m of ["projects", "announcements"])
     if (user.permissions.includes(`${m}.read`))
       recent[m] = (
         await listRecords(m, user, { limit: 6, sort: "updated_at" })
@@ -88,12 +88,16 @@ operationsRouter.get("/dashboard", async (req, res) => {
   }
   if (user.permissions.includes("tasks.read")) {
     const s = scope("tasks", user);
+    recent.tasks = await query(
+      `SELECT r.*, p.name AS project_name FROM tasks r LEFT JOIN projects p ON p.id = r.project_id WHERE r.archived_at IS NULL AND (${s.sql}) ORDER BY r.updated_at DESC LIMIT 8`,
+      s.params,
+    );
     recent.priorities = await query(
-      `SELECT r.* FROM tasks r WHERE r.archived_at IS NULL AND r.status<>'Completed' AND (${s.sql}) AND r.priority IN ('High','Urgent') ORDER BY r.due_date IS NULL,r.due_date LIMIT 5`,
+      `SELECT r.*, p.name AS project_name FROM tasks r LEFT JOIN projects p ON p.id = r.project_id WHERE r.archived_at IS NULL AND r.status<>'Completed' AND (${s.sql}) AND r.priority IN ('High','Urgent') ORDER BY r.due_date IS NULL,r.due_date LIMIT 6`,
       s.params,
     );
     recent.deadlines = await query(
-      `SELECT r.* FROM tasks r WHERE r.archived_at IS NULL AND r.status<>'Completed' AND r.due_date IS NOT NULL AND (${s.sql}) ORDER BY r.due_date LIMIT 5`,
+      `SELECT r.*, p.name AS project_name FROM tasks r LEFT JOIN projects p ON p.id = r.project_id WHERE r.archived_at IS NULL AND r.status<>'Completed' AND r.due_date IS NOT NULL AND (${s.sql}) ORDER BY r.due_date LIMIT 6`,
       s.params,
     );
   }

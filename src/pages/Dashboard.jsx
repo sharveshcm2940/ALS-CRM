@@ -9,7 +9,11 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  Check,
+  RotateCcw,
   Plus,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { api } from "../services/api";
 import {
@@ -24,7 +28,221 @@ export default function Dashboard() {
   const { user, settings } = useOutletContext();
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
-    [retry, setRetry] = useState(0);
+    [retry, setRetry] = useState(0),
+    [completing, setCompleting] = useState({}),
+    [expandedBriefs, setExpandedBriefs] = useState({}),
+    [toast, setToast] = useState("");
+
+  const toggleBrief = (id, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedBriefs((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleToggleComplete = async (task, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (completing[task.id]) return;
+
+    const isCompleted = task.status === "Completed";
+    const nextStatus = isCompleted ? "In Progress" : "Completed";
+    const nextProgress = isCompleted ? 50 : 100;
+
+    setCompleting((prev) => ({ ...prev, [task.id]: true }));
+
+    // Optimistically update dashboard state
+    setData((prev) => {
+      if (!prev) return prev;
+      const updateList = (list) =>
+        list?.map((t) =>
+          t.id === task.id
+            ? { ...t, status: nextStatus, progress: nextProgress }
+            : t,
+        );
+
+      const delta = isCompleted ? -1 : 1;
+      return {
+        ...prev,
+        metrics: {
+          ...prev.metrics,
+          tasks: {
+            ...prev.metrics?.tasks,
+            completed_month: Math.max(
+              0,
+              (Number(prev.metrics?.tasks?.completed_month) || 0) + delta,
+            ),
+          },
+        },
+        recent: {
+          ...prev.recent,
+          tasks: updateList(prev.recent?.tasks),
+          deadlines: updateList(prev.recent?.deadlines),
+          priorities: updateList(prev.recent?.priorities),
+        },
+        workload: prev.workload?.map((w) =>
+          w.id === user.id
+            ? {
+                ...w,
+                completed: Math.max(0, (Number(w.completed) || 0) + delta),
+              }
+            : w,
+        ),
+      };
+    });
+
+    try {
+      await api(`/tasks/${task.id}`, {
+        method: "PATCH",
+        body: { status: nextStatus, progress: nextProgress },
+      });
+      setToast(
+        isCompleted
+          ? `Task "${task.name}" reopened.`
+          : `Task "${task.name}" marked as completed!`,
+      );
+      setTimeout(() => setToast(""), 3500);
+    } catch (err) {
+      console.error("Failed to update task status:", err);
+      setError(err.message);
+      setRetry((r) => r + 1);
+    } finally {
+      setCompleting((prev) => ({ ...prev, [task.id]: false }));
+    }
+  };
+
+  const renderTaskCard = (t, showBrief = true) => {
+    const isCompleted = t.status === "Completed";
+    const isBusy = completing[t.id];
+    const isExpanded = expandedBriefs[t.id];
+    const hasLongBrief = t.description && t.description.length > 110;
+
+    return (
+      <div
+        key={t.id}
+        className={`task-card-item ${isCompleted ? "is-completed" : ""}`}
+      >
+        <div className="task-card-main">
+          <button
+            type="button"
+            className={`task-complete-toggle ${isCompleted ? "checked" : ""}`}
+            onClick={(e) => handleToggleComplete(t, e)}
+            disabled={isBusy}
+            title={
+              isCompleted
+                ? "Click to reopen task"
+                : "Click to mark as completed"
+            }
+            aria-label={isCompleted ? "Reopen task" : "Complete task"}
+          >
+            {isCompleted ? (
+              <CheckCircle2 size={20} className="check-icon-done" />
+            ) : (
+              <span className="check-circle-empty">
+                <Check size={12} className="check-icon-hover" />
+              </span>
+            )}
+          </button>
+
+          <div className="task-card-body">
+            <div className="task-card-header">
+              <Link to={`/tasks?record=${t.id}`} className="task-title-link">
+                <strong
+                  className={`task-title ${isCompleted ? "strikethrough" : ""}`}
+                >
+                  {t.name}
+                </strong>
+              </Link>
+              <div className="task-badges-row">
+                {t.project_name && (
+                  <span className="project-tag-pill" title={t.project_name}>
+                    <FolderKanban size={11} />
+                    <span>{t.project_name}</span>
+                  </span>
+                )}
+                <Badge value={t.priority} />
+                <Badge value={t.status} />
+              </div>
+            </div>
+
+            {showBrief && t.description && (
+              <div className="task-brief-container">
+                <div className="task-brief-header">
+                  <span className="brief-label">Task Brief</span>
+                  {hasLongBrief && (
+                    <button
+                      type="button"
+                      className="brief-toggle-btn"
+                      onClick={(e) => toggleBrief(t.id, e)}
+                    >
+                      {isExpanded ? (
+                        <>
+                          Show less <ChevronUp size={12} />
+                        </>
+                      ) : (
+                        <>
+                          Show full brief <ChevronDown size={12} />
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <p
+                  className={`task-brief-text ${!isExpanded && hasLongBrief ? "clamped" : ""}`}
+                >
+                  {t.description}
+                </p>
+              </div>
+            )}
+
+            <div className="task-card-footer">
+              <div className="task-dates">
+                {t.start_date && (
+                  <span className="task-date-item">
+                    <span className="date-label">Start:</span>
+                    <DateText
+                      value={t.start_date}
+                      timezone={settings.timezone}
+                    />
+                  </span>
+                )}
+                {t.due_date && (
+                  <span className="task-date-item">
+                    <Clock3 size={13} />
+                    <span className="date-label">Deadline:</span>
+                    <DateText value={t.due_date} timezone={settings.timezone} />
+                  </span>
+                )}
+              </div>
+
+              <div className="task-actions-cluster">
+                <button
+                  type="button"
+                  className={`task-action-btn ${isCompleted ? "reopen" : "complete"}`}
+                  onClick={(e) => handleToggleComplete(t, e)}
+                  disabled={isBusy}
+                >
+                  {isCompleted ? (
+                    <>
+                      <RotateCcw size={12} />
+                      Reopen
+                    </>
+                  ) : (
+                    <>
+                      <Check size={13} />
+                      Complete Task
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     setError("");
     api("/dashboard")
@@ -104,6 +322,12 @@ export default function Dashboard() {
       ];
   return (
     <>
+      {toast && (
+        <div className="dashboard-toast" role="status">
+          <CheckCircle2 size={16} />
+          <span>{toast}</span>
+        </div>
+      )}
       <PageHeader
         eyebrow={
           engineer
@@ -253,22 +477,8 @@ export default function Dashboard() {
             </Link>
           </div>
           {recent.tasks?.length ? (
-            <div className="task-list">
-              {recent.tasks.map((t) => (
-                <Link to={`/tasks?record=${t.id}`} key={t.id}>
-                  <CheckCircle2 size={18} />
-                  <div>
-                    <strong>{t.name}</strong>
-                    <small>
-                      <DateText
-                        value={t.due_date}
-                        timezone={settings.timezone}
-                      />
-                    </small>
-                  </div>
-                  <Badge value={t.status} />
-                </Link>
-              ))}
+            <div className="task-card-list">
+              {recent.tasks.map((t) => renderTaskCard(t, true))}
             </div>
           ) : (
             <Empty
@@ -329,22 +539,10 @@ export default function Dashboard() {
             </Link>
           </div>
           {(engineer ? recent.deadlines : recent.priorities)?.length ? (
-            <div className="task-list">
-              {(engineer ? recent.deadlines : recent.priorities).map((t) => (
-                <Link key={t.id} to={`/tasks?record=${t.id}`}>
-                  <Clock3 size={18} />
-                  <div>
-                    <strong>{t.name}</strong>
-                    <small>
-                      <DateText
-                        value={t.due_date}
-                        timezone={settings.timezone}
-                      />
-                    </small>
-                  </div>
-                  <Badge value={t.priority} />
-                </Link>
-              ))}
+            <div className="task-card-list">
+              {(engineer ? recent.deadlines : recent.priorities).map((t) =>
+                renderTaskCard(t, true),
+              )}
             </div>
           ) : (
             <Empty

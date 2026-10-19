@@ -501,6 +501,7 @@ export default function Records({ module }) {
               onEdit={() => setEdit(true)}
               onArchive={() => setConfirm("archive")}
               onConvert={() => setConfirm("convert")}
+              onUpdated={saved}
             />
           )}
         </Modal>
