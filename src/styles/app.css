@@ -1956,3 +1956,207 @@ tbody tr:hover {
     animation: none;
   }
 }
+
+/* Company artwork, kept on white to preserve the supplied logo's contrast. */
+.brand-wordmark {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand-symbol {
+  display: none;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.auth-logo {
+  width: min(100%, 410px);
+  padding: 10px 13px;
+  background: #fff;
+  border: 1px solid #ffffff30;
+  border-radius: 5px;
+  position: relative;
+  z-index: 1;
+}
+.sidebar .brand {
+  display: block;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 9px 0;
+  background: #fff;
+}
+.collapsed .sidebar .brand {
+  display: flex;
+  justify-content: center;
+}
+.collapsed .sidebar .brand-wordmark {
+  display: none;
+}
+.collapsed .sidebar .brand-symbol {
+  display: block;
+}
+.story-frames {
+  display: grid;
+  min-width: 0;
+  min-height: 230px;
+}
+.story-slide {
+  grid-area: 1/1;
+  min-width: 0;
+  opacity: 0;
+  transform: translateY(18px);
+  animation: story-text-cycle 18s cubic-bezier(0.22, 0.61, 0.36, 1)
+    var(--slide-delay) infinite both;
+  will-change: transform, opacity;
+}
+.story-slide h2 {
+  font-size: 44px;
+  font-weight: 450;
+  line-height: 1.3;
+  letter-spacing: -1.5px;
+  color: #fff;
+}
+.story-slide h2 span {
+  color: #c1d5ee;
+}
+.story-slide p {
+  max-width: 420px;
+  text-wrap: pretty;
+}
+.story-controls {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 34px;
+}
+.story-controls .story-lines {
+  margin-top: 0;
+  gap: 8px;
+}
+.story-controls .story-lines > span {
+  width: 38px;
+  height: 3px;
+  background: #40566f;
+  overflow: hidden;
+  position: relative;
+}
+.story-lines i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #c1d5ee;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: story-progress 18s linear var(--slide-delay) infinite both;
+}
+.story-motion-control {
+  padding: 5px 7px;
+  background: transparent;
+  border: 1px solid #ffffff18;
+  color: #a9bdd5;
+  gap: 5px;
+  font-size: 9px;
+  min-height: 28px;
+  opacity: 0.8;
+}
+.story-motion-control:hover {
+  background: #ffffff08;
+  border-color: #ffffff40;
+  color: #fff;
+  opacity: 1;
+}
+.story-paused .story-slide,
+.story-paused .story-lines i {
+  animation-play-state: paused;
+}
+@keyframes story-text-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  4%,
+  28% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  37%,
+  100% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+@keyframes story-progress {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  29% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  33%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+@media (max-width: 1200px) {
+  .story-slide h2 {
+    font-size: 36px;
+  }
+  .story-frames {
+    min-height: 220px;
+  }
+}
+@media (max-width: 980px) {
+  .story-slide h2 {
+    font-size: 30px;
+  }
+  .story-frames {
+    min-height: 205px;
+  }
+  .auth-logo {
+    padding: 10px;
+  }
+  .story-controls {
+    gap: 14px;
+  }
+}
+@media (max-width: 700px) {
+  .auth-logo {
+    width: 285px;
+    max-width: 100%;
+    padding: 6px 10px;
+  }
+  .collapsed .sidebar .brand-wordmark {
+    display: block;
+  }
+  .collapsed .sidebar .brand-symbol {
+    display: none;
+  }
+  .collapsed .sidebar .brand {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-slide,
+  .story-lines i {
+    animation: none !important;
+    will-change: auto;
+  }
+  .story-slide {
+    display: none;
+    opacity: 1;
+    transform: none;
+  }
+  .story-slide:first-child {
+    display: block;
+  }
+  .story-controls .story-lines > span:first-child i {
+    transform: scaleX(1);
+  }
+  .story-motion-control {
+    display: none;
+  }
+}

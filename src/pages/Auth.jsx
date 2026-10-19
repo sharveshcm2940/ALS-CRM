@@ -1,3 +1,5 @@
+import Brand from "../components/Brand";
+import LoginStory from "../components/LoginStory";
 import React, { useState } from "react";
 import { Eye, EyeOff, ArrowRight, ShieldCheck, Building2 } from "lucide-react";
 import { api } from "../services/api";
@@ -37,32 +39,10 @@ export default function Auth({ onLogin, change = false, onLogout }) {
   return (
     <div className="auth-layout">
       <aside className="auth-story">
-        <div className="brand light">
-          <span className="brand-mark">
-            a<span>l</span>s
-          </span>
-          <div>
-            ALS Infonet<small>CONNECTED. ORGANIZED. TOGETHER.</small>
-          </div>
+        <div className="brand auth-logo">
+          <Brand />
         </div>
-        <div className="story-content">
-          <div className="story-label">THE WAY WE WORK</div>
-          <h1>
-            Good relationships.
-            <br />
-            Great work.
-          </h1>
-          <p>
-            One shared workspace for the people,
-            <br />
-            projects, and conversations that move us forward.
-          </p>
-          <div className="story-lines">
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
+        <LoginStory />
         <footer>
           ALS Infonet · Internal workspace <ShieldCheck size={16} />
         </footer>

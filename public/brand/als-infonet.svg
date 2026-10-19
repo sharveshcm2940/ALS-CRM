@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="697" height="138" viewBox="0 0 697 138" role="img" aria-label="ALS Infonet — Software solutions · IT services">
+  <rect width="697" height="138" fill="#fff"/>
+  <g fill="none" stroke="#080808" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44.5 46 21.5 92.5h17M50 92.5h17.5l-7-14M35 73h20L44.5 46"/>
+  </g>
+  <circle cx="44.5" cy="83" r="2.4" fill="#080808"/>
+  <text x="113" y="68" fill="#080808" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="600" letter-spacing="8">ALS</text>
+  <path d="M236.5 35v37" stroke="#d5d5d5" stroke-width="4"/>
+  <text x="257" y="68" fill="#282828" font-family="Arial,Helvetica,sans-serif" font-size="41" font-weight="300" letter-spacing="9">INFONET</text>
+  <text x="113" y="104" fill="#999" font-family="Arial,Helvetica,sans-serif" font-size="22" letter-spacing="3.2">SOFTWARE SOLUTIONS · IT SERVICES</text>
+</svg>

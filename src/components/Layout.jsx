@@ -1,3 +1,4 @@
+import Brand from "./Brand";
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -88,12 +89,7 @@ export default function Layout({ user, onLogout, settings }) {
       />
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <NavLink className="brand" to="/dashboard">
-          <span className="brand-mark">
-            a<span>l</span>s
-          </span>
-          <div>
-            ALS Infonet<small>TEAM WORKSPACE</small>
-          </div>
+          <Brand />
         </NavLink>
         <div className="workspace-label">WORKSPACE</div>
         <nav aria-label="Main navigation">
