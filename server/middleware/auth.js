@@ -16,7 +16,7 @@ export function isAllowedOrigin(origin) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (configured.includes(origin)) return true;
-  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(origin)) return true;
   return false;
 }
 export function csrf(req, res, next) {
