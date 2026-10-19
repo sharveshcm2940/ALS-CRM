@@ -15,10 +15,15 @@ async function readJson(response) {
   try {
     return await response.json();
   } catch {
+    const isHtml = response.headers
+      ?.get?.("content-type")
+      ?.includes("text/html");
     throw new ApiError(
-      response.ok
-        ? "The server returned an unexpected response. Please try again."
-        : "The server could not complete the request. Please try again.",
+      isHtml
+        ? "Backend API is not reachable. Please set VITE_API_URL in Netlify or deploy the backend server. Please try again."
+        : response.ok
+          ? "The server returned an unexpected response. Please try again."
+          : "The server could not complete the request. Please try again.",
       response.status,
     );
   }
