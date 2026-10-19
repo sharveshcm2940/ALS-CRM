@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"node --watch server/index.js\" \"vite --host 0.0.0.0\"",
-    "build": "NODE_ENV=production vite build",
+    "build": "vite build",
     "start": "node server/index.js",
     "migrate": "node server/migrations/run.js",
     "seed": "node server/seeders/run.js",
@@ -17,6 +17,7 @@
     "db:test-recovery": "node scripts/recovery-test.js",
     "seed:demo": "node scripts/sample-data.js",
     "test:roles": "node scripts/role-browser-test.js",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"server/**/*.js\" \"scripts/*.js\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"server/**/*.js\" \"scripts/*.js\"",
     "test:errors": "node scripts/error-browser-test.js"
   },

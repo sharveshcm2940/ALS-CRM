@@ -1,7 +1,7 @@
 import Brand from "../components/Brand";
 import LoginStory from "../components/LoginStory";
 import React, { useState } from "react";
-import { Eye, EyeOff, ArrowRight, ShieldCheck, Building2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ShieldCheck } from "lucide-react";
 import { api } from "../services/api";
 import { ErrorBox } from "../components/Common";
 export default function Auth({ onLogin, change = false, onLogout }) {
@@ -49,8 +49,13 @@ export default function Auth({ onLogin, change = false, onLogout }) {
       </aside>
       <main className="auth-main">
         <div className="login-box">
-          <div className="login-symbol">
-            <Building2 size={25} />
+          <div className="login-symbol" aria-hidden="true">
+            <img
+              src="/brand/als-symbol.svg"
+              width="32"
+              height="32"
+              alt="ALS Infonet"
+            />
           </div>
           <div className="eyebrow">ALS INFONET WORKSPACE</div>
           <h1>{change ? "Secure your account" : "Welcome back"}</h1>

@@ -3,9 +3,25 @@ import { randomUUID, randomBytes } from "node:crypto";
 import bcrypt from "bcrypt";
 import assert from "node:assert/strict";
 import { pool, query } from "../server/config/index.js";
+import { existsSync } from "node:fs";
+function getExecutable() {
+  if (process.env.CHROMIUM_PATH && existsSync(process.env.CHROMIUM_PATH))
+    return process.env.CHROMIUM_PATH;
+  const candidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  ];
+  for (const c of candidates) if (existsSync(c)) return c;
+  return undefined;
+}
 const browser = await chromium.launch({
     headless: true,
-    executablePath: "/usr/bin/chromium",
+    ...(getExecutable() ? { executablePath: getExecutable() } : {}),
   }),
   ids = [];
 const base = process.env.TEST_BASE_URL || "http://localhost:5173";

@@ -112,7 +112,7 @@ export default function Dashboard() {
               ? "BOARD OVERVIEW"
               : "EXECUTIVE OVERVIEW"
         }
-        title={`Good to see you, ${user.name.split(" ")[0]}.`}
+        title={`Good to see you, ${user.name ? user.name.split(" ")[0] : "there"}.`}
         description="Here’s what’s happening across your workspace."
       >
         <div className="today">
@@ -162,7 +162,9 @@ export default function Dashboard() {
             <div className="project-list">
               {recent.projects.map((p) => (
                 <Link to={`/projects?record=${p.id}`} key={p.id}>
-                  <div className="project-monogram">{p.name[0]}</div>
+                  <div className="project-monogram">
+                    {(p.name?.[0] || "?").toUpperCase()}
+                  </div>
                   <div className="project-summary">
                     <strong>{p.name}</strong>
                     <small>
@@ -295,7 +297,9 @@ export default function Dashboard() {
               .slice(0, 5)
               .map((w) => (
                 <div key={w.id}>
-                  <span className="avatar small">{w.name[0]}</span>
+                  <span className="avatar small">
+                    {(w.name?.[0] || "?").toUpperCase()}
+                  </span>
                   <strong>{w.name}</strong>
                   <div className="workload-bar">
                     <i

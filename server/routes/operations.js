@@ -128,9 +128,11 @@ operationsRouter.get("/audit", ceo, permit("audit.read"), async (req, res) => {
     .max(100000)
     .parse(req.query.page || 1);
   const [{ total }] = await query("SELECT COUNT(*) total FROM activity_logs");
+  const offset = Math.min(page - 1, 100000) * 30;
   res.json({
     data: await query(
-      `SELECT a.*,u.name actor_name FROM activity_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 30 OFFSET ${Math.min(page - 1, 100000) * 30}`,
+      "SELECT a.*,u.name actor_name FROM activity_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 30 OFFSET ?",
+      [offset],
     ),
     meta: { page, total, pages: Math.ceil(total / 30) },
   });

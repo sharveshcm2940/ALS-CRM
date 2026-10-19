@@ -210,13 +210,15 @@ export default function Records({ module }) {
     setYear(d.getFullYear());
     setPage(1);
   }
-  const dayOf = (v) =>
-    new Intl.DateTimeFormat("en-CA", {
+  const dayOf = (v) => {
+    if (!v || typeof v !== "string") return "";
+    return new Intl.DateTimeFormat("en-CA", {
       timeZone: settings.timezone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     }).format(new Date(v.replace(" ", "T") + "Z"));
+  };
   return (
     <>
       <PageHeader title={definition.title} description={definition.description}>
@@ -432,7 +434,7 @@ export default function Records({ module }) {
                             onClick={() => setParams({ record: r.id })}
                           >
                             <span className={`record-monogram ${module}`}>
-                              {r.name[0].toUpperCase()}
+                              {(r.name?.[0] || "?").toUpperCase()}
                             </span>
                             {r.name}
                           </button>

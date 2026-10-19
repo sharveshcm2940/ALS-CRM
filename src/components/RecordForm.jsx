@@ -131,7 +131,7 @@ export default function RecordForm({
                               ...form,
                               [f.key]: e.target.checked
                                 ? [...(form[f.key] || []), u.id]
-                                : form[f.key].filter((v) => v !== u.id),
+                                : (form[f.key] || []).filter((v) => v !== u.id),
                             })
                           }
                         />

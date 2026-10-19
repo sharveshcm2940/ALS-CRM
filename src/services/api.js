@@ -79,10 +79,21 @@ export async function downloadReport(report) {
     const result = await readJson(response);
     throw new ApiError(result.error || "Export failed.", response.status);
   }
-  const url = URL.createObjectURL(await response.blob());
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `als-${report}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const blob = await response.blob();
+  if (
+    typeof window !== "undefined" &&
+    typeof document !== "undefined" &&
+    document.createElement
+  ) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `als-${report}.csv`;
+    if (document.body) document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (document.body && a.parentNode) document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 150);
+  }
 }

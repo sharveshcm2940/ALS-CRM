@@ -16,6 +16,8 @@ export default function RecordDetail({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [team, setTeam] = useState([]),
+    [customers, setCustomers] = useState([]),
+    [projects, setProjects] = useState([]),
     [history, setHistory] = useState([]);
   const canEdit =
     user.permissions.includes(`${module}.write`) ||
@@ -34,6 +36,14 @@ export default function RecordDetail({
       api("/team")
         .then((r) => setTeam(r.data))
         .catch((e) => setError(e.message));
+    if (user.permissions.includes("customers.read"))
+      api("/customers?limit=100")
+        .then((r) => setCustomers(r.data))
+        .catch(() => {});
+    if (user.permissions.includes("projects.read"))
+      api("/projects?limit=100")
+        .then((r) => setProjects(r.data))
+        .catch(() => {});
   }, [record.id]);
   async function comment(e) {
     e.preventDefault();
@@ -88,9 +98,17 @@ export default function RecordDetail({
                       team.find((u) => u.id === id)?.name || "Team member",
                   )
                   .join(", ") || "None"
-              ) : ["customers", "projects"].includes(f.type) ? (
+              ) : f.type === "customers" ? (
                 record[f.key] ? (
-                  "Linked record"
+                  customers.find((c) => c.id === record[f.key])?.name ||
+                  "Linked customer"
+                ) : (
+                  "None"
+                )
+              ) : f.type === "projects" ? (
+                record[f.key] ? (
+                  projects.find((p) => p.id === record[f.key])?.name ||
+                  "Linked project"
                 ) : (
                   "None"
                 )
