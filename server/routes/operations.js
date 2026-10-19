@@ -141,14 +141,24 @@ operationsRouter.get("/audit", ceo, permit("audit.read"), async (req, res) => {
     meta: { page, total, pages: Math.ceil(total / 30) },
   });
 });
-operationsRouter.get("/notifications", async (req, res) =>
-  res.json({
-    data: await query(
-      "SELECT id,message,read_at,created_at FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
-      [req.user.id],
-    ),
-  }),
-);
+operationsRouter.get("/notifications", async (req, res) => {
+  const data = await query(
+    "SELECT id,message,read_at,created_at FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
+    [req.user.id],
+  );
+  const [{ unread }] = await query(
+    "SELECT COUNT(*) AS unread FROM notifications WHERE user_id=? AND read_at IS NULL",
+    [req.user.id],
+  );
+  res.json({ data, meta: { unread: Number(unread) } });
+});
+operationsRouter.patch("/notifications/read-all", async (req, res) => {
+  await query(
+    "UPDATE notifications SET read_at=UTC_TIMESTAMP() WHERE user_id=? AND read_at IS NULL",
+    [req.user.id],
+  );
+  res.json({ data: { ok: true } });
+});
 operationsRouter.patch("/notifications/:id", async (req, res) => {
   z.uuid().parse(req.params.id);
   await query(

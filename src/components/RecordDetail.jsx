@@ -1,8 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { CheckCircle2, RotateCcw } from "lucide-react";
+import {
+  CheckCircle2,
+  RotateCcw,
+  FileText,
+  PhoneCall,
+  Users,
+  Mail,
+  Milestone,
+} from "lucide-react";
 import { api } from "../services/api";
 import { modules } from "../services/modules";
 import { Badge, DateText, ErrorBox } from "./Common";
+
+const activityTypes = [
+  { id: "note", label: "Note", icon: FileText, tag: "" },
+  { id: "call", label: "Call Log", icon: PhoneCall, tag: "[Call Log]" },
+  { id: "meeting", label: "Meeting", icon: Users, tag: "[Meeting Note]" },
+  { id: "email", label: "Email", icon: Mail, tag: "[Email Log]" },
+  { id: "milestone", label: "Milestone", icon: Milestone, tag: "[Milestone]" },
+];
+
 export default function RecordDetail({
   module,
   record,
@@ -16,6 +33,7 @@ export default function RecordDetail({
   const [currentRecord, setCurrentRecord] = useState(record);
   const [comments, setComments] = useState([]),
     [body, setBody] = useState(""),
+    [selectedActivity, setSelectedActivity] = useState("note"),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [team, setTeam] = useState([]),
@@ -52,11 +70,14 @@ export default function RecordDetail({
     e.preventDefault();
     setBusy(true);
     try {
+      const activeType = activityTypes.find((t) => t.id === selectedActivity);
+      const finalBody = activeType?.tag ? `${activeType.tag} ${body}` : body;
       await api(`/${module}/${record.id}/comments`, {
         method: "POST",
-        body: { body },
+        body: { body: finalBody },
       });
       setBody("");
+      setSelectedActivity("note");
       await refresh();
     } catch (e) {
       setError(e.message);
@@ -177,26 +198,63 @@ export default function RecordDetail({
         ))}
       </dl>
       <div className="comments">
-        <h3>Conversation & work updates</h3>
+        <h3>Activity & Timeline Updates</h3>
         {comments.length ? (
-          comments.map((c) => (
-            <div className="comment" key={c.id}>
-              <div>
-                <strong>{c.name}</strong>
-                <small>
-                  <DateText value={c.created_at} timezone={timezone} time />
-                </small>
+          comments.map((c) => {
+            const matchedType = activityTypes.find(
+              (t) => t.tag && c.body.startsWith(t.tag),
+            );
+            const cleanBody = matchedType
+              ? c.body.replace(matchedType.tag, "").trim()
+              : c.body;
+            const Icon = matchedType?.icon || FileText;
+
+            return (
+              <div className="comment" key={c.id}>
+                <div className="comment-header-row">
+                  <div className="comment-author-info">
+                    <strong>{c.name}</strong>
+                    {matchedType && (
+                      <span className={`activity-type-badge ${matchedType.id}`}>
+                        <Icon size={12} />
+                        <span>{matchedType.label}</span>
+                      </span>
+                    )}
+                  </div>
+                  <small>
+                    <DateText value={c.created_at} timezone={timezone} time />
+                  </small>
+                </div>
+                <p>{cleanBody}</p>
               </div>
-              <p>{c.body}</p>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <p className="muted">No comments yet.</p>
+          <p className="muted">No activity or comments recorded yet.</p>
         )}
+
         {user.permissions.includes("comments.write") && (
-          <form onSubmit={comment}>
+          <form className="activity-logger-form" onSubmit={comment}>
+            <div className="activity-type-chips">
+              <span className="activity-type-label">Log Activity:</span>
+              {activityTypes.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    type="button"
+                    key={t.id}
+                    className={`activity-chip-btn ${selectedActivity === t.id ? "active" : ""}`}
+                    onClick={() => setSelectedActivity(t.id)}
+                  >
+                    <Icon size={13} />
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <label className="sr-only" htmlFor="comment">
-              Add a comment
+              Add note or activity update
             </label>
             <textarea
               id="comment"
@@ -205,16 +263,26 @@ export default function RecordDetail({
               rows={3}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Share an update or add a comment…"
+              placeholder={
+                selectedActivity === "call"
+                  ? "Log phone call outcome, follow-up items, or client discussion…"
+                  : selectedActivity === "meeting"
+                    ? "Log meeting summary, agreed action points, and key decisions…"
+                    : selectedActivity === "email"
+                      ? "Log email correspondence summary, notes, or next steps…"
+                      : selectedActivity === "milestone"
+                        ? "Log project milestone achieved, deliverables met, or progress…"
+                        : "Share an internal note or progress update…"
+              }
             />
             <button className="primary" disabled={busy}>
-              Post comment
+              {busy ? "Posting…" : "Post update"}
             </button>
           </form>
         )}
       </div>
       <div className="comments">
-        <h3>Record history</h3>
+        <h3>Record audit history</h3>
         {history.map((a) => (
           <div className="comment" key={a.id}>
             <p>

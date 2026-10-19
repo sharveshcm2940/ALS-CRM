@@ -9,6 +9,10 @@ import {
   ChevronRight,
   List,
   CalendarDays,
+  Columns3,
+  Download,
+  Clock3,
+  FolderKanban,
 } from "lucide-react";
 import { api } from "../services/api";
 import { modules } from "../services/modules";
@@ -24,6 +28,7 @@ import {
 } from "../components/Common";
 import RecordForm from "../components/RecordForm";
 import RecordDetail from "../components/RecordDetail";
+
 const columnNames = {
   name: "Name",
   organization: "Organization",
@@ -42,6 +47,21 @@ const columnNames = {
   pinned: "Pinned",
   created_at: "Published",
 };
+
+const kanbanStages = {
+  leads: [
+    "New",
+    "Contacted",
+    "Qualified",
+    "Proposal",
+    "Negotiation",
+    "Won",
+    "Lost",
+  ],
+  tasks: ["To Do", "In Progress", "In Review", "Completed"],
+  projects: ["Planning", "Active", "On Hold", "Completed"],
+};
+
 export default function Records({ module }) {
   const { user, settings } = useOutletContext(),
     definition = modules[module];
@@ -67,6 +87,7 @@ export default function Records({ module }) {
     user.permissions.includes(`${module}.write`) ||
     (module === "tasks" && user.permissions.includes("tasks.create"));
   const loadId = useRef(0);
+
   async function load(signal) {
     const requestId = ++loadId.current;
     setError("");
@@ -82,7 +103,9 @@ export default function Records({ module }) {
             from: `${year}-${String(month + 1).padStart(2, "0")}-01`,
             to: `${new Date(Date.UTC(year, month + 1, 1)).toISOString().slice(0, 10)}`,
           }
-        : {}),
+        : view === "kanban"
+          ? { limit: 100 }
+          : {}),
     });
     try {
       const result = await api(`/${module}?${query}`, { signal });
@@ -91,6 +114,65 @@ export default function Records({ module }) {
       setMeta(result.meta);
     } catch (e) {
       if (!signal?.aborted && requestId === loadId.current) setError(e.message);
+    }
+  }
+
+  function exportCsv() {
+    if (!rows || !rows.length) return;
+    const cols = definition.columns;
+    const header = cols.map((c) => columnNames[c] || c);
+    const data = rows.map((r) =>
+      cols
+        .map((c) => {
+          let val = r[c];
+          if (c.endsWith("_id")) {
+            val = users.find((u) => u.id === val)?.name || val;
+          }
+          const s = String(val ?? "")
+            .replace(/^[=+@\-\t\r]/, "'$&")
+            .replaceAll('"', '""');
+          return `"${s}"`;
+        })
+        .join(","),
+    );
+    const csvContent = "\uFEFF" + [header.join(","), ...data].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${module}_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleQuickStatusChange(r, nextStatus, e) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (r.status === nextStatus) return;
+    try {
+      let body = { status: nextStatus };
+      if (module === "tasks") {
+        body.progress =
+          nextStatus === "Completed"
+            ? 100
+            : nextStatus === "In Progress"
+              ? 50
+              : 0;
+      }
+      await api(`/${module}/${r.id}`, {
+        method: "PATCH",
+        body,
+      });
+      setRows((prev) =>
+        prev?.map((item) => (item.id === r.id ? { ...item, ...body } : item)),
+      );
+      setNotice(`Updated ${r.name} status to ${nextStatus}`);
+    } catch (err) {
+      setError(err.message);
     }
   }
   useEffect(() => {
@@ -314,6 +396,36 @@ export default function Records({ module }) {
                 </select>
               </>
             )}
+            {["leads", "tasks", "projects"].includes(module) && (
+              <div className="view-toggle-group">
+                <button
+                  type="button"
+                  className={`view-toggle-btn ${view === "list" ? "active" : ""}`}
+                  onClick={() => {
+                    setView("list");
+                    setPage(1);
+                  }}
+                  title="Table view"
+                  aria-label="Table view"
+                >
+                  <List size={16} />
+                  <span>Table</span>
+                </button>
+                <button
+                  type="button"
+                  className={`view-toggle-btn ${view === "kanban" ? "active" : ""}`}
+                  onClick={() => {
+                    setView("kanban");
+                    setPage(1);
+                  }}
+                  title="Kanban Board view"
+                  aria-label="Kanban Board view"
+                >
+                  <Columns3 size={16} />
+                  <span>Board</span>
+                </button>
+              </div>
+            )}
             {module === "meetings" && (
               <>
                 <select
@@ -353,6 +465,17 @@ export default function Records({ module }) {
             >
               <ArrowDownUp size={16} />
             </button>
+            {rows?.length > 0 && (
+              <button
+                type="button"
+                className="export-csv-btn"
+                title="Export current view to CSV"
+                onClick={exportCsv}
+              >
+                <Download size={15} />
+                <span>Export</span>
+              </button>
+            )}
           </div>
         </div>
         {error && !rows ? (
@@ -413,6 +536,181 @@ export default function Records({ module }) {
               )}
             </div>
           </>
+        ) : view === "kanban" && kanbanStages[module] ? (
+          <div className="kanban-board-container">
+            {kanbanStages[module].map((stage) => {
+              const stageRows = rows.filter(
+                (r) => (r.status || "").toLowerCase() === stage.toLowerCase(),
+              );
+              const totalValue =
+                module === "leads"
+                  ? stageRows.reduce(
+                      (sum, r) => sum + (Number(r.value) || 0),
+                      0,
+                    )
+                  : 0;
+
+              return (
+                <div className="kanban-column" key={stage}>
+                  <div className="kanban-column-header">
+                    <div className="kanban-stage-title-wrap">
+                      <span className="kanban-stage-title">{stage}</span>
+                      <span className="kanban-count-pill">
+                        {stageRows.length}
+                      </span>
+                    </div>
+                    {module === "leads" && totalValue > 0 && (
+                      <span
+                        className="kanban-value-summary"
+                        title="Total stage pipeline value"
+                      >
+                        ₹{totalValue.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="kanban-cards-stack">
+                    {stageRows.length ? (
+                      stageRows.map((r) => {
+                        const ownerOrAssignee =
+                          users.find(
+                            (u) => u.id === (r.assignee_id || r.owner_id),
+                          )?.name || "Team";
+                        const initials = ownerOrAssignee
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase();
+
+                        return (
+                          <div
+                            className="kanban-card"
+                            key={r.id}
+                            onClick={() => setParams({ record: r.id })}
+                          >
+                            <div className="kanban-card-top">
+                              <span className="kanban-card-title">
+                                {r.name}
+                              </span>
+                              {r.priority && <Badge value={r.priority} />}
+                            </div>
+
+                            {r.organization && (
+                              <div className="kanban-card-org">
+                                <span>{r.organization}</span>
+                              </div>
+                            )}
+
+                            {module === "tasks" && r.project_id && (
+                              <div className="kanban-tag-row">
+                                <span className="project-tag-pill">
+                                  <FolderKanban size={11} />
+                                  <span>
+                                    {projects.find((p) => p.id === r.project_id)
+                                      ?.name || "Linked Project"}
+                                  </span>
+                                </span>
+                              </div>
+                            )}
+
+                            {module === "leads" && r.value > 0 && (
+                              <div className="kanban-deal-value">
+                                <strong>
+                                  ₹{Number(r.value).toLocaleString("en-IN")}
+                                </strong>
+                                {r.currency && <small>{r.currency}</small>}
+                              </div>
+                            )}
+
+                            {["tasks", "projects"].includes(module) && (
+                              <div className="kanban-progress-row">
+                                <div className="kanban-progress-track">
+                                  <div
+                                    className="kanban-progress-fill"
+                                    style={{ width: `${r.progress || 0}%` }}
+                                  />
+                                </div>
+                                <span className="kanban-progress-label">
+                                  {r.progress || 0}%
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="kanban-card-footer">
+                              <div className="kanban-dates">
+                                {(r.due_date || r.follow_up_date) && (
+                                  <span
+                                    className={`kanban-date-badge ${
+                                      (r.due_date || r.follow_up_date) <
+                                        calendarDate(
+                                          new Date(),
+                                          settings.timezone,
+                                        ) &&
+                                      !["Completed", "Won", "Lost"].includes(
+                                        r.status,
+                                      )
+                                        ? "overdue"
+                                        : ""
+                                    }`}
+                                  >
+                                    <Clock3 size={11} />
+                                    <DateText
+                                      value={r.due_date || r.follow_up_date}
+                                      timezone={settings.timezone}
+                                    />
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="kanban-card-right">
+                                <span
+                                  className="kanban-avatar"
+                                  title={ownerOrAssignee}
+                                >
+                                  {initials}
+                                </span>
+
+                                {(user.permissions.includes(
+                                  `${module}.write`,
+                                ) ||
+                                  (module === "tasks" &&
+                                    user.role_id === "engineer")) && (
+                                  <select
+                                    className="kanban-quick-move"
+                                    value={r.status}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) =>
+                                      handleQuickStatusChange(
+                                        r,
+                                        e.target.value,
+                                        e,
+                                      )
+                                    }
+                                    title="Move stage"
+                                  >
+                                    {kanbanStages[module].map((st) => (
+                                      <option key={st} value={st}>
+                                        → {st}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="kanban-empty-column">
+                        <span>No {module}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : rows.length ? (
           <div className="table-scroll">
             <table>
@@ -470,7 +768,7 @@ export default function Records({ module }) {
             }
           />
         )}
-        <Pagination meta={meta} onPage={setPage} />
+        {view === "list" && <Pagination meta={meta} onPage={setPage} />}
       </section>
       {(creating || selected) && (
         <Modal

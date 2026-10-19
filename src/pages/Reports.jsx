@@ -124,6 +124,114 @@ export default function Reports() {
             <Loading />
           ) : rows.length ? (
             <>
+              {selected === "pipeline" &&
+                rows.length > 0 &&
+                (() => {
+                  const nonLost = rows.filter((r) => r.status !== "Lost");
+                  const totalPipelineValue = nonLost.reduce(
+                    (sum, r) => sum + (Number(r.value) || 0),
+                    0,
+                  );
+                  const wonRows = rows.filter((r) => r.status === "Won");
+                  const wonValue = wonRows.reduce(
+                    (sum, r) => sum + (Number(r.value) || 0),
+                    0,
+                  );
+                  const closedCount = rows.filter((r) =>
+                    ["Won", "Lost"].includes(r.status),
+                  ).length;
+                  const winRate =
+                    closedCount > 0
+                      ? Math.round((wonRows.length / closedCount) * 100)
+                      : 0;
+                  const activeDeals = rows.filter(
+                    (r) => !["Won", "Lost"].includes(r.status),
+                  ).length;
+                  const avgDeal =
+                    nonLost.length > 0
+                      ? Math.round(totalPipelineValue / nonLost.length)
+                      : 0;
+
+                  const pipelineStages = [
+                    "New",
+                    "Contacted",
+                    "Qualified",
+                    "Proposal",
+                    "Negotiation",
+                    "Won",
+                  ];
+                  const stageStats = pipelineStages.map((st) => {
+                    const matching = rows.filter((r) => r.status === st);
+                    const val = matching.reduce(
+                      (acc, r) => acc + (Number(r.value) || 0),
+                      0,
+                    );
+                    return { stage: st, count: matching.length, value: val };
+                  });
+
+                  return (
+                    <div className="pipeline-funnel-card">
+                      <div className="funnel-metrics-row">
+                        <div className="funnel-metric">
+                          <span>Total Pipeline</span>
+                          <strong>
+                            ₹{totalPipelineValue.toLocaleString("en-IN")}
+                          </strong>
+                        </div>
+                        <div className="funnel-metric">
+                          <span>Active Deals</span>
+                          <strong>{activeDeals}</strong>
+                        </div>
+                        <div className="funnel-metric">
+                          <span>Won Value</span>
+                          <strong>₹{wonValue.toLocaleString("en-IN")}</strong>
+                        </div>
+                        <div className="funnel-metric">
+                          <span>Win Rate</span>
+                          <strong>{winRate}%</strong>
+                        </div>
+                        <div className="funnel-metric">
+                          <span>Avg Deal Size</span>
+                          <strong>₹{avgDeal.toLocaleString("en-IN")}</strong>
+                        </div>
+                      </div>
+
+                      <div className="funnel-bar-container">
+                        <span className="funnel-label">
+                          Pipeline Stage Distribution:
+                        </span>
+                        <div className="funnel-segmented-track">
+                          {stageStats.map((st) => {
+                            const pct =
+                              totalPipelineValue > 0
+                                ? Math.max(
+                                    3,
+                                    Math.round(
+                                      (st.value / totalPipelineValue) * 100,
+                                    ),
+                                  )
+                                : Math.round(100 / stageStats.length);
+                            if (st.count === 0 && st.value === 0) return null;
+
+                            return (
+                              <div
+                                key={st.stage}
+                                className={`funnel-segment ${st.stage.toLowerCase()}`}
+                                style={{ flex: pct }}
+                                title={`${st.stage}: ${st.count} deals (₹${st.value.toLocaleString("en-IN")})`}
+                              >
+                                <span>
+                                  {st.stage} ({st.count})
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
               <div className="report-summaries">
                 {summary.map(([key, value]) => (
                   <div key={key}>

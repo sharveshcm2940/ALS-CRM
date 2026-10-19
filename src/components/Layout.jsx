@@ -19,9 +19,12 @@ import {
   LogOut,
   PanelLeftClose,
   ShieldCheck,
+  Plus,
+  CheckCheck,
 } from "lucide-react";
 import { api } from "../services/api";
 import { Modal, ErrorBox, DateText, Empty } from "./Common";
+
 const nav = [
   ["dashboard", "Dashboard", LayoutDashboard],
   ["customers", "Customers", Contact],
@@ -34,41 +37,129 @@ const nav = [
   ["team", "Team", Users],
   ["settings", "Settings", Settings],
 ];
+
 export const roleLabels = {
   ceo: "Chief Executive Officer",
   board: "Board member",
   engineer: "Engineering team",
 };
+
 export default function Layout({ user, onLogout, settings }) {
   const [open, setOpen] = useState(false),
     [collapsed, setCollapsed] = useState(false),
     [profile, setProfile] = useState(false),
+    [quickCreateOpen, setQuickCreateOpen] = useState(false),
     [panel, setPanel] = useState(""),
     [notifications, setNotifications] = useState([]),
+    [unreadCount, setUnreadCount] = useState(0),
     [q, setQ] = useState(""),
     [results, setResults] = useState(null),
     [error, setError] = useState("");
+
   const location = useLocation(),
     navigate = useNavigate();
+
   const visible = nav.filter(
     ([key]) =>
       key === "dashboard" ||
       key === "settings" ||
       user.permissions.includes(`${key}.read`),
   );
+
+  const canCreateModules = [
+    {
+      key: "tasks",
+      label: "Task",
+      icon: CheckSquare,
+      allowed:
+        user.permissions.includes("tasks.write") ||
+        user.permissions.includes("tasks.create") ||
+        user.role_id === "engineer",
+    },
+    {
+      key: "leads",
+      label: "Lead",
+      icon: Users,
+      allowed: user.permissions.includes("leads.write"),
+    },
+    {
+      key: "projects",
+      label: "Project",
+      icon: FolderKanban,
+      allowed: user.permissions.includes("projects.write"),
+    },
+    {
+      key: "customers",
+      label: "Customer",
+      icon: Contact,
+      allowed: user.permissions.includes("customers.write"),
+    },
+    {
+      key: "meetings",
+      label: "Meeting",
+      icon: CalendarDays,
+      allowed: user.permissions.includes("meetings.write"),
+    },
+    {
+      key: "announcements",
+      label: "Announcement",
+      icon: Megaphone,
+      allowed: user.permissions.includes("announcements.write"),
+    },
+  ].filter((m) => m.allowed);
+
+  const fetchNotificationCounts = async () => {
+    try {
+      const res = await api("/notifications");
+      setUnreadCount(res.meta?.unread || 0);
+      setNotifications(res.data || []);
+    } catch {}
+  };
+
   useEffect(() => {
     setOpen(false);
     setProfile(false);
+    setQuickCreateOpen(false);
+    fetchNotificationCounts();
   }, [location.pathname]);
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPanel("Search");
+        setError("");
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   async function showNotifications() {
     setPanel("Notifications");
     setError("");
     try {
-      setNotifications((await api("/notifications")).data);
+      const res = await api("/notifications");
+      setNotifications(res.data || []);
+      setUnreadCount(res.meta?.unread || 0);
     } catch (e) {
       setError(e.message);
     }
   }
+
+  async function markAllNotificationsRead() {
+    try {
+      await api("/notifications/read-all", { method: "PATCH", body: {} });
+      setNotifications((items) =>
+        items.map((x) => ({ ...x, read_at: new Date().toISOString() })),
+      );
+      setUnreadCount(0);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function search(e) {
     e.preventDefault();
     setPanel("Search");
@@ -80,6 +171,7 @@ export default function Layout({ user, onLogout, settings }) {
       setError(e.message);
     }
   }
+
   return (
     <div className={`app-shell ${collapsed ? "collapsed" : ""}`}>
       <button
@@ -134,7 +226,43 @@ export default function Layout({ user, onLogout, settings }) {
                 "Dashboard"}
             </strong>
           </div>
+
           <div className="topbar-tools">
+            {canCreateModules.length > 0 && (
+              <div className="quick-create-wrap">
+                <button
+                  type="button"
+                  className="quick-create-btn"
+                  onClick={() => setQuickCreateOpen(!quickCreateOpen)}
+                  aria-expanded={quickCreateOpen}
+                  title="Create new record"
+                >
+                  <Plus size={15} />
+                  <span>New</span>
+                  <ChevronDown size={13} />
+                </button>
+                {quickCreateOpen && (
+                  <div className="quick-create-menu">
+                    {canCreateModules.map((m) => {
+                      const Icon = m.icon;
+                      return (
+                        <button
+                          key={m.key}
+                          onClick={() => {
+                            setQuickCreateOpen(false);
+                            navigate(`/${m.key}?new=1`);
+                          }}
+                        >
+                          <Icon size={15} />
+                          <span>New {m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             <form className="global-search" onSubmit={search}>
               <Search size={16} />
               <input
@@ -142,17 +270,29 @@ export default function Layout({ user, onLogout, settings }) {
                 minLength={2}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search workspace…"
+                placeholder="Search workspace… (Ctrl+K)"
               />
               <kbd>↵</kbd>
             </form>
+
             <button
               className="icon-button notification-button"
               aria-label="Notifications"
               onClick={showNotifications}
+              title={
+                unreadCount > 0
+                  ? `${unreadCount} unread notifications`
+                  : "Notifications"
+              }
             >
               <Bell size={19} />
+              {unreadCount > 0 && (
+                <span className="notification-badge">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
+
             <div className="profile-wrap">
               <button
                 className="profile"
@@ -201,6 +341,7 @@ export default function Layout({ user, onLogout, settings }) {
           <span>{settings.timezone} · Secure session</span>
         </footer>
       </div>
+
       {panel && (
         <Modal title={panel} onClose={() => setPanel("")}>
           <ErrorBox message={error} />
@@ -229,20 +370,42 @@ export default function Layout({ user, onLogout, settings }) {
             )
           ) : notifications.length ? (
             <div className="stack">
+              <div className="notifications-header-bar">
+                <span className="notifications-count-label">
+                  {notifications.length} recent update
+                  {notifications.length === 1 ? "" : "s"}
+                </span>
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    className="mark-all-btn"
+                    onClick={markAllNotificationsRead}
+                  >
+                    <CheckCheck size={14} />
+                    <span>Mark all as read</span>
+                  </button>
+                )}
+              </div>
               {notifications.map((n) => (
-                <div className="notification-item" key={n.id}>
-                  <p>{n.message}</p>
-                  <small>
-                    <DateText
-                      value={n.created_at}
-                      timezone={settings.timezone}
-                      time
-                    />
-                  </small>
+                <div
+                  className={`notification-item ${!n.read_at ? "unread" : ""}`}
+                  key={n.id}
+                >
+                  <div className="notification-content">
+                    <p>{n.message}</p>
+                    <small>
+                      <DateText
+                        value={n.created_at}
+                        timezone={settings.timezone}
+                        time
+                      />
+                    </small>
+                  </div>
                   {!n.read_at && (
                     <button
                       className="text-button"
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         try {
                           await api(`/notifications/${n.id}`, {
                             method: "PATCH",
@@ -250,9 +413,12 @@ export default function Layout({ user, onLogout, settings }) {
                           });
                           setNotifications((items) =>
                             items.map((x) =>
-                              x.id === n.id ? { ...x, read_at: true } : x,
+                              x.id === n.id
+                                ? { ...x, read_at: new Date().toISOString() }
+                                : x,
                             ),
                           );
+                          setUnreadCount((prev) => Math.max(0, prev - 1));
                         } catch (e) {
                           setError(e.message);
                         }

@@ -103,7 +103,7 @@ for (const module of modules) {
         .strict()
         .parse(req.body);
       await transaction(async (db) => {
-        await getRecord(module, req.params.id, req.user, db);
+        const rec = await getRecord(module, req.params.id, req.user, db);
         if (module === "tasks")
           await query(
             "INSERT INTO task_comments(id,task_id,user_id,body) VALUES (?,?,?,?)",
@@ -116,6 +116,20 @@ for (const module of modules) {
             [randomUUID(), module, req.params.id, req.user.id, body],
             db,
           );
+
+        const targetUser = rec.assignee_id || rec.owner_id || rec.organizer_id;
+        if (targetUser && targetUser !== req.user.id) {
+          await query(
+            "INSERT INTO notifications(id,user_id,message) VALUES (?,?,?)",
+            [
+              randomUUID(),
+              targetUser,
+              `${req.user.name} commented on ${module}: ${(rec.name || "record").slice(0, 120)}`,
+            ],
+            db,
+          );
+        }
+
         await audit(
           req.user.id,
           "commented",
