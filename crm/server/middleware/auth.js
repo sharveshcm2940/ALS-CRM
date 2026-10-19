@@ -1,5 +1,4 @@
-import jwt from "jsonwebtoken";
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
 import { query, config } from "../config/index.js";
 export const cookieOptions = {
   httpOnly: true,
@@ -36,18 +35,19 @@ export function issueCsrf(res) {
 }
 export async function auth(req, res, next) {
   try {
-    const token = jwt.verify(
-      req.cookies.session || "",
-      process.env.JWT_SECRET,
-      { algorithms: ["HS256"], issuer: "als-crm", audience: "als-browser" },
-    );
+    const token = req.cookies.session;
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token))
+      return next(fail(401, "Your session has expired. Please sign in."));
+    const tokenHash = createHash("sha256").update(token).digest("hex");
     const rows = await query(
-      "SELECT u.id,u.name,u.username,u.email,u.email_verified,u.role_id,u.must_change_password FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.id=? AND s.user_id=? AND s.expires_at>UTC_TIMESTAMP() AND u.active=1",
-      [token.jti, token.sub],
+      "SELECT s.id AS session_id,u.id,u.name,u.username,u.email,u.email_verified,u.role_id,u.must_change_password FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>UTC_TIMESTAMP() AND u.active=1",
+      [tokenHash],
     );
-    if (!rows.length) throw Error();
-    req.user = rows[0];
-    req.sessionId = token.jti;
+    if (!rows.length)
+      return next(fail(401, "Your session has expired. Please sign in."));
+    const { session_id, ...user } = rows[0];
+    req.user = user;
+    req.sessionId = session_id;
     req.user.permissions = (
       await query(
         "SELECT permission_id FROM role_permissions WHERE role_id=?",
@@ -56,8 +56,7 @@ export async function auth(req, res, next) {
     ).map((x) => x.permission_id);
     next();
   } catch (e) {
-    if (e.code) return next(e);
-    next(fail(401, "Your session has expired. Please sign in."));
+    next(e);
   }
 }
 export function initialized(req, res, next) {

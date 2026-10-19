@@ -27,7 +27,6 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.0",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.468.0",
     "mysql2": "^3.14.0",
     "react": "^19.1.0",

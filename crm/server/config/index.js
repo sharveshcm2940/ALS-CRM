@@ -1,12 +1,6 @@
 import "dotenv/config";
 import mysql from "mysql2/promise";
 import { readFileSync } from "node:fs";
-if (
-  !process.env.JWT_SECRET ||
-  process.env.JWT_SECRET.length < 32 ||
-  process.env.JWT_SECRET.startsWith("REPLACE")
-)
-  throw new Error("Set a strong JWT_SECRET in .env");
 export const config = {
   port: Number(process.env.PORT || 4000),
   origin: process.env.APP_ORIGIN || "http://localhost:5173",

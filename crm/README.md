@@ -1,6 +1,6 @@
 # ALS Infonet CRM
 
-A working internal CRM built with **React, Vite, React Router, Express, MySQL 8.4, mysql2, JWT cookie sessions, and bcrypt**. The original Next.js demonstration remains at the repository root; this CRM is independent in `crm/`.
+A working internal CRM built with **React, Vite, React Router, Express, MySQL 8.4, mysql2, opaque database-backed cookie sessions, and bcrypt**. The original Next.js demonstration remains at the repository root; this CRM is independent in `crm/`.
 
 ## Quick start
 
@@ -17,7 +17,7 @@ npm run dev
 
 `db:up` generates private local configuration if absent, starts the `als-crm-mysql` Docker container bound to **127.0.0.1:3307**, and verifies a real authenticated database query. MySQL data uses the named Docker volume `als-crm-mysql-data`. On a fresh container with an empty schema, a retained `.local/database.sql` is automatically restored if available and restored sessions are revoked. Existing database contents and `.env` files are preserved. The API uses port **4000**; Vite uses **5173** and proxies `/api`. Do not expose the MySQL port publicly.
 
-For an existing managed MySQL database, provision `crm/.env` from `.env.example`, use a strong random signing secret, then run `migrate`, `seed`, and `dev` without `db:up`. No cloud API keys or email service are needed.
+For an existing managed MySQL database, provision `crm/.env` from `.env.example`, then run `migrate`, `seed`, and `dev` without `db:up`. No cloud API keys or email service are needed.
 
 ## First sign-in and account delivery
 
@@ -44,6 +44,8 @@ npm run account:reset -- abdul
 ```
 
 That writes a credential to private `.local/reset-credentials.txt`. No email reset service or email-delivery claims are made.
+
+Existing installations must run `npm run migrate` before restarting the updated server. Migration `002_opaque_sessions.sql` revokes previous sessions; users must sign in again. User accounts, passwords, roles, and CRM records are preserved. No signing secret is required.
 
 ## Workflow and permissions
 
@@ -76,12 +78,12 @@ The browser suite creates a temporary CEO fixture, exercises the forced password
 ## Production build and deployment
 
 1. Use Node 24 and a MySQL 8.4 database. Back up before migrations. Use a migration principal for setup and a separate runtime database principal restricted to the schema's required SELECT/INSERT/UPDATE/DELETE operations.
-2. Provision secret environment variables securely. Use a fresh, high-entropy `JWT_SECRET` and database credentials; never copy development credentials to production. `.env.example` contains placeholders only. Set `NODE_ENV=production`, `PORT=4000`, `APP_ORIGIN=https://YOUR_VERIFIED_COMPANY_HOST`, database variables, and `COMPANY_TIMEZONE` for initial setup. Subsequent timezone changes are stored in Settings.
+2. Provision secret environment variables securely. Use securely provisioned database credentials; never copy development credentials to production. `.env.example` contains placeholders only. Set `NODE_ENV=production`, `PORT=4000`, `APP_ORIGIN=https://YOUR_VERIFIED_COMPANY_HOST`, database variables, and `COMPANY_TIMEZONE` for initial setup. Subsequent timezone changes are stored in Settings.
 3. Run `npm ci`, `npm run migrate`, `npm run seed`, and `npm run build` from `crm/`. Deliver initial credentials securely and delete provisioning files. Run `npm run start` under a process supervisor. Express serves both `dist/` and `/api` from the same origin. Do not use Vite's development server publicly.
 4. Terminate HTTPS at a reverse proxy, forward requests to the private API port, preserve the approved origin, and restrict direct network access. Secure cookies are enabled when `NODE_ENV=production`; CORS accepts only `APP_ORIGIN`. For managed MySQL, set `DB_SSL=true` to verify the server certificate against system trust; set `DB_SSL_CA_FILE` to an operator-provided trusted CA file if required. Keep certificate verification enabled. Also configure private network controls. For a multi-instance deployment, add a shared rate-limit store; the supplied limiter is process-local.
 5. Confirm `/api/health`, sign-in, a permitted CRUD workflow, and negative permission tests behind the real HTTPS host. Protect database backups, centralize security logs, monitor expiry/disk capacity, and set an organization retention policy.
 
-Sessions use HttpOnly/SameSite=Strict cookies, Secure in production, fixed eight-hour JWT expiry with issuer/audience/algorithm checks, and a database session record checked on each request. Logout deletes that session. Password/role/status changes revoke all sessions. There is no long-lived refresh token. CSRF requires a matching cookie/header pair plus an approved browser Origin for mutations, including login. Secure headers, strict payload validation, parameterized SQL, IP/account login throttles, and generic client-facing server errors are enabled. The API does not trust forwarded IP headers by default; a single trusted reverse proxy may aggregate requests under one IP, so configure a narrowly trusted proxy topology before scaling.
+Sessions use HttpOnly/SameSite=Strict cookies, Secure in production, a random 256-bit opaque session token, an eight-hour database-enforced expiry, and a session record checked on each request. Only a SHA-256 hash of the session token is stored in MySQL. Logout deletes that session. Password/role/status changes revoke all sessions. There is no long-lived refresh token. CSRF requires a matching cookie/header pair plus an approved browser Origin for mutations, including login. Secure headers, strict payload validation, parameterized SQL, IP/account login throttles, and generic client-facing server errors are enabled. The API does not trust forwarded IP headers by default; a single trusted reverse proxy may aggregate requests under one IP, so configure a narrowly trusted proxy topology before scaling.
 
 ## Backups and recovery
 

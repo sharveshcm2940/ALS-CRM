@@ -6,7 +6,7 @@ All routes are under `/api`. Responses use `{data: ...}` with optional `meta` pa
 
 1. `GET /auth/csrf` sets the readable `csrf` cookie and returns `data.csrf`.
 2. Supply it in `x-csrf-token` for every POST/PATCH/PUT/DELETE. Send credentials/cookies. Browser Origin must match `APP_ORIGIN`.
-3. `POST /auth/login` accepts `{username,password}` (verified email may substitute for username), sets an HttpOnly JWT session cookie, rotates CSRF, returns `must_change_password`.
+3. `POST /auth/login` accepts `{username,password}` (verified email may substitute for username), sets an HttpOnly opaque session cookie, rotates CSRF, returns `must_change_password`.
 4. `GET /auth/me` returns a safe user record with role and permissions.
 5. `PATCH /auth/change-password` accepts `{currentPassword,newPassword}` and revokes all sessions. Temporary-password accounts can only use authentication routes until initialized.
 6. `POST /auth/logout` revokes the current session.

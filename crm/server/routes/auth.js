@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { query } from "../config/index.js";
 import { auth, cookieOptions, issueCsrf, fail } from "../middleware/auth.js";
@@ -70,6 +69,8 @@ authRouter.post(
       throw fail(401, "Invalid credentials or inactive account.");
     }
     const id = randomUUID();
+    const token = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
     await transaction(async (db) => {
       await query(
         "DELETE FROM sessions WHERE expires_at<=UTC_TIMESTAMP()",
@@ -77,19 +78,11 @@ authRouter.post(
         db,
       );
       await query(
-        "INSERT INTO sessions(id,user_id,expires_at) VALUES (?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 8 HOUR))",
-        [id, u.id],
+        "INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES (?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 8 HOUR))",
+        [id, u.id, tokenHash],
         db,
       );
       await audit(u.id, "login", "auth", u.id, "Signed in", db);
-    });
-    const token = jwt.sign({}, process.env.JWT_SECRET, {
-      algorithm: "HS256",
-      subject: u.id,
-      jwtid: id,
-      issuer: "als-crm",
-      audience: "als-browser",
-      expiresIn: "8h",
     });
     res.cookie("session", token, {
       ...cookieOptions,

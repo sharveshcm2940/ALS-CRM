@@ -8,7 +8,7 @@ try {
 } catch {
   await writeFile(
     ".env",
-    `NODE_ENV=development\nPORT=4000\nAPP_ORIGIN=http://localhost:5173\nDB_HOST=127.0.0.1\nDB_PORT=3307\nDB_NAME=als_crm\nDB_USER=als_app\nDB_PASSWORD=${randomBytes(32).toString("hex")}\nJWT_SECRET=${randomBytes(48).toString("hex")}\nCOMPANY_TIMEZONE=Asia/Kolkata\n`,
+    `NODE_ENV=development\nPORT=4000\nAPP_ORIGIN=http://localhost:5173\nDB_HOST=127.0.0.1\nDB_PORT=3307\nDB_NAME=als_crm\nDB_USER=als_app\nDB_PASSWORD=${randomBytes(32).toString("hex")}\nCOMPANY_TIMEZONE=Asia/Kolkata\n`,
     { mode: 0o600 },
   );
 }

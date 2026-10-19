@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import bcrypt from "bcrypt";
-import { randomUUID, randomBytes } from "node:crypto";
+import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { app } from "../app.js";
 import { pool, query } from "../config/index.js";
@@ -26,7 +26,11 @@ async function agentLogin(username, pass = password) {
     .set("x-csrf-token", token)
     .send({ username, password: pass });
   assert.equal(response.status, 200, JSON.stringify(response.body));
-  return { agent, csrf: response.body.data.csrf };
+  const cookie = response.headers["set-cookie"].find((value) =>
+    value.startsWith("session="),
+  );
+  const sessionToken = cookie.split(";")[0].slice("session=".length);
+  return { agent, csrf: response.body.data.csrf, token: sessionToken };
 }
 function call(who, method, url, body) {
   const a = actors[who];
@@ -122,6 +126,49 @@ test("anonymous access, CSRF, origin and credential isolation", async () => {
   assert.equal(me.role_id, "ceo");
   assert.ok(!JSON.stringify(me).includes("password_hash"));
 });
+test("opaque sessions store only token hashes and reject tampering, IDs and expiry", async () => {
+  const token = actors.ceo.token;
+  assert.ok(/^[a-f0-9]{64}$/.test(token));
+  const [session] = await query(
+    "SELECT id,token_hash FROM sessions WHERE user_id=?",
+    [actors.ceo.id],
+  );
+  assert.ok(
+    session.token_hash === createHash("sha256").update(token).digest("hex"),
+  );
+  assert.ok(session.token_hash !== token);
+  const user = (await call("ceo", "get", "/auth/me")).body.data;
+  assert.ok(!("session_id" in user));
+  assert.ok(!("token_hash" in user));
+  const tampered = (token[0] === "0" ? "1" : "0") + token.slice(1);
+  for (const invalid of [
+    tampered,
+    session.id,
+    session.token_hash,
+    "header.payload.signature",
+  ]) {
+    assert.equal(
+      (
+        await request(app)
+          .get("/api/auth/me")
+          .set("Cookie", `session=${invalid}`)
+      ).status,
+      401,
+    );
+  }
+  await query(
+    "UPDATE sessions SET expires_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE user_id=?",
+    [actors.board.id],
+  );
+  try {
+    assert.equal((await call("board", "get", "/auth/me")).status, 401);
+  } finally {
+    await query(
+      "UPDATE sessions SET expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 8 HOUR) WHERE user_id=?",
+      [actors.board.id],
+    );
+  }
+});
 test("all nine provisioned individual accounts authenticate and require initialization", async (t) => {
   let contents;
   try {
@@ -151,6 +198,7 @@ test("all nine provisioned individual accounts authenticate and require initiali
       .post("/api/auth/logout")
       .set("x-csrf-token", actor.csrf)
       .send({});
+    assert.equal((await actor.agent.get("/api/auth/me")).status, 401);
   }
 });
 test("customer persistence, validation, search and board write protection", async () => {
