@@ -51,11 +51,11 @@ app.get("/api/health", async (req, res) => {
     await query("SELECT 1");
     res.json({ data: { status: "ok", database: "connected" } });
   } catch (e) {
-    res.status(200).json({
+    res.status(503).json({
       data: {
         status: "degraded",
         database: "disconnected",
-        hint: "Configure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) in Render Environment Variables.",
+        hint: "Configure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) in the hosting environment settings.",
       },
     });
   }
@@ -99,11 +99,11 @@ app.use((err, req, res, next) => {
     err.code === "ER_BAD_DB_ERROR"
   ) {
     console.error(
-      `Database connection error (${err.code}): ensure DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD are configured correctly in Render Environment Variables.`,
+      `Database connection error (${err.code}): ensure DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD are configured correctly in the hosting environment settings.`,
     );
     return res.status(503).json({
       error:
-        "Database is currently unreachable. Please ensure your cloud MySQL credentials (DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) are configured in your Render dashboard environment variables.",
+        "Database is currently unreachable. Please ensure your cloud MySQL credentials (DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) are configured in the hosting environment settings.",
     });
   }
   if (!err.status) console.error("Request failed:", err.code || err.name);

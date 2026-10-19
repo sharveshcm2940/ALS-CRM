@@ -3,7 +3,7 @@ import { query, config } from "../config/index.js";
 export const cookieOptions = {
   httpOnly: true,
   secure: config.production,
-  sameSite: process.env.COOKIE_SAMESITE || (config.production ? "none" : "lax"),
+  sameSite: "strict",
   path: "/",
 };
 export function fail(status, message) {
@@ -16,8 +16,6 @@ export function isAllowedOrigin(origin) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (configured.includes(origin)) return true;
-  if (/^https:\/\/[a-z0-9-]+\.onrender\.com$/.test(origin)) return true;
-  if (/^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(origin)) return true;
   return false;
 }
 export function csrf(req, res, next) {

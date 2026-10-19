@@ -1,11 +1,27 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "24"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["bcrypt", "mysql2"]
+
+# Route API requests before the React Router fallback. Keeping one browser
+# origin lets HttpOnly sessions and the CSRF cookie work without third-party cookies.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/api/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[template.environment]
+  DATABASE_URL = "Hosted MySQL connection URL (server-side secret; never use a VITE_ prefix)"

@@ -76,6 +76,10 @@ The API suite checks authentication, all nine provisioned logins when still usin
 
 The browser suite creates a temporary CEO fixture, exercises the forced password change, all six create forms, edits, conversion, comments, archival, reports, team/settings/audit views, calendar navigation and mobile layout, then removes only its fixtures. Screenshots go to ignored `test-results/`. Use `TEST_BASE_URL` to target a running production bundle. `npm run seed:demo` optionally adds three visibly labeled **[DEVELOPMENT ONLY]** example records; it refuses production mode and does not fabricate contact details. It is not run automatically.
 
+## Netlify hosting
+
+The frontend and Express API are configured for Netlify static hosting plus Functions. A hosted MySQL database and owner-authorized Netlify account are required. Follow [the Netlify deployment guide](docs/NETLIFY.md). Builds do not migrate or seed a production database.
+
 ## Production build and deployment
 
 1. Use Node 24 and a MySQL 8.4 database. Back up before migrations. Use a migration principal for setup and a separate runtime database principal restricted to the schema's required SELECT/INSERT/UPDATE/DELETE operations.
