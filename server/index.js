@@ -1,8 +1,12 @@
 import { app } from "./app.js";
 import { pool, config } from "./config/index.js";
-const server = app.listen(config.port, "0.0.0.0", () =>
-  console.log(`ALS CRM API listening on port ${config.port}`),
-);
+import { ensureDatabaseReady } from "./services/db-init.js";
+
+const server = app.listen(config.port, "0.0.0.0", async () => {
+  console.log(`ALS CRM API listening on port ${config.port}`);
+  await ensureDatabaseReady();
+});
+
 async function shutdown() {
   server.close(async () => {
     await pool.end();

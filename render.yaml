@@ -11,6 +11,10 @@ services:
         value: production
       - key: COMPANY_TIMEZONE
         value: Asia/Kolkata
+      - key: INITIAL_PASSWORD
+        value: Admin@12345
+      - key: DATABASE_URL
+        sync: false
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -23,3 +27,4 @@ services:
         value: als_crm
       - key: DB_SSL
         value: "true"
+

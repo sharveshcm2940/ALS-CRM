@@ -90,13 +90,20 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: "Invalid JSON." });
   if (err.type === "entity.too.large")
     return res.status(413).json({ error: "Request too large." });
-  if (err.code === "ECONNREFUSED") {
+  if (
+    err.code === "ECONNREFUSED" ||
+    err.code === "ETIMEDOUT" ||
+    err.code === "ENOTFOUND" ||
+    err.code === "EAI_AGAIN" ||
+    err.code === "ER_ACCESS_DENIED_ERROR" ||
+    err.code === "ER_BAD_DB_ERROR"
+  ) {
     console.error(
-      "Database connection refused: ensure DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME (or DATABASE_URL) are configured in Render Environment Variables.",
+      `Database connection error (${err.code}): ensure DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD are configured correctly in Render Environment Variables.`,
     );
     return res.status(503).json({
       error:
-        "Database is currently unreachable. Please ensure your cloud MySQL credentials (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME or DATABASE_URL) are configured in your Render dashboard environment variables.",
+        "Database is currently unreachable. Please ensure your cloud MySQL credentials (DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) are configured in your Render dashboard environment variables.",
     });
   }
   if (!err.status) console.error("Request failed:", err.code || err.name);
