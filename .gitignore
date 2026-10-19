@@ -1,5 +1,7 @@
 node_modules/
-.next/
-.env*
-*.tsbuildinfo
+dist/
+.env
+.env.*
+!.env.example
+.local/
 test-results/

@@ -1,31 +1,46 @@
 {
-  "name": "stillwater-residences",
+  "name": "als-infonet-crm",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0",
-    "build": "next build",
-    "start": "next start --hostname 0.0.0.0",
-    "typecheck": "tsc --noEmit",
-    "test:smoke": "node tests/smoke.cjs"
+    "dev": "concurrently -k \"node --watch server/index.js\" \"vite --host 0.0.0.0\"",
+    "build": "NODE_ENV=production vite build",
+    "start": "node server/index.js",
+    "migrate": "node server/migrations/run.js",
+    "seed": "node server/seeders/run.js",
+    "db:up": "node scripts/database.js",
+    "account:reset": "node scripts/reset-account.js",
+    "test": "node --test --test-concurrency=1 server/tests/*.test.js",
+    "test:browser": "node scripts/browser-test.js",
+    "db:backup": "node scripts/backup.js",
+    "db:test-recovery": "node scripts/recovery-test.js",
+    "seed:demo": "node scripts/sample-data.js",
+    "test:roles": "node scripts/role-browser-test.js",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"server/**/*.js\" \"scripts/*.js\"",
+    "test:errors": "node scripts/error-browser-test.js"
   },
   "dependencies": {
-    "gsap": "^3.14.0",
-    "lenis": "^1.3.0",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.1.0",
     "lucide-react": "^0.468.0",
-    "motion": "^12.0.0",
-    "next": "^15.5.12",
+    "mysql2": "^3.14.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "swiper": "^12.0.0"
+    "react-router-dom": "^7.9.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0"
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.0",
+    "prettier": "^3.9.10",
+    "supertest": "^7.1.0",
+    "vite": "^7.1.0"
   }
 }
